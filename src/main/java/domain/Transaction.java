@@ -3,19 +3,18 @@ package domain;
 import lombok.*;
 
 import java.io.Serializable;
-import java.time.LocalDate;
-import java.time.ZonedDateTime;
+import java.time.LocalDateTime;
 
 @Getter
 @Setter
 @AllArgsConstructor
 @NoArgsConstructor
-@ToString(callSuper = true)
+@ToString()
 @EqualsAndHashCode
 
 public abstract class Transaction implements Serializable {
     protected long id;
-    protected ZonedDateTime date;
+    protected LocalDateTime date;
     protected double amount;
     protected String description;
     protected TypeTransaction typeTransaction;

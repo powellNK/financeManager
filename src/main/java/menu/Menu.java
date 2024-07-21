@@ -2,19 +2,18 @@ package menu;
 
 import database.Database;
 import domain.*;
+import exceptions.TransactionTypeNotFoundException;
 
 import java.io.*;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
+import java.util.stream.Stream;
 
 public class Menu {
     public static void printMenu() {
         try (
-                BufferedReader bufferedReader = new BufferedReader(new InputStreamReader(System.in));
+                BufferedReader bufferedReader = new BufferedReader(new InputStreamReader(System.in))
         ) {
 
-            Integer numberOfMenu = 0;
+            int numberOfMenu;
             do {
                 System.out.println("Выберите действие:");
                 System.out.println("1. Добавить новую транзакцию");
@@ -26,47 +25,15 @@ public class Menu {
                 numberOfMenu = Integer.parseInt(bufferedReader.readLine());
 
                 switch (numberOfMenu) {
-                    case 1:
-
-                        System.out.println("Выберите тип транзакции: INCOME(Доход) или EXPENSE(Расход)");
-                        String inputTypeTransaction = bufferedReader.readLine();
-                        TypeTransaction typeTransaction = TypeTransaction.valueOf(inputTypeTransaction.toUpperCase());
-                        System.out.println("Количество переведенных денег:");
-                        Double money = Double.parseDouble(bufferedReader.readLine());
-                        System.out.println("Введите описание:");
-                        String description = bufferedReader.readLine();
-
-                        if (typeTransaction.equals(TypeTransaction.INCOME)) {
-                            addIncomeTransaction(bufferedReader, money, description);
-                        } else {
-                            addExpenseTransaction(bufferedReader, money, description);
-                        }
-
-                        System.out.println("Транзакция успешно добавлена");
-
-                        break;
-
-                    case 2:
-                        Database.printTransactions();
-                        break;
-                    case 3:
-                        Database.printIncomes();
-                        break;
-                    case 4:
-                        Database.printExpenses();
-                        break;
-                    case 5:
-                        String typeSearchExpence = bufferedReader.readLine().toUpperCase();
-                        TypeExpense typeExpense = TypeExpense.valueOf(typeSearchExpence.toUpperCase());
-                        Database.searchByType(typeExpense);
-                        break;
-                    case 6:
-                        String typeSearchIncome = bufferedReader.readLine().toUpperCase();
-                        TypeIncome typeIncome = TypeIncome.valueOf(typeSearchIncome.toUpperCase());
-                        Database.searchByType(typeIncome);
-                        break;
-                }            }
-                while (numberOfMenu != 0) ;
+                    case 1 -> addTransaction(bufferedReader);
+                    case 2 -> Database.printTransactions();
+                    case 3 -> Database.printIncomes();
+                    case 4 -> Database.printExpenses();
+                    case 5-> FilterByIncomeCategory(bufferedReader);
+                    case 6 -> FilterByExpenseCategory(bufferedReader);
+                }
+            }
+            while (numberOfMenu != 0);
 
 
         } catch (IOException exception) {
@@ -74,33 +41,73 @@ public class Menu {
         }
     }
 
-    private static void addExpenseTransaction(BufferedReader bufferedReader, Double money, String description) throws IOException {
-        final TypeExpense[] valuesExpense = TypeExpense.values();
-        System.out.println("Выберите тип расхода: ");
-
-        for (var value : valuesExpense) {
-            System.out.println(value.name());
-        }
-        String inputTypeExpense = bufferedReader.readLine();
-        TypeExpense typeExpense = TypeExpense.valueOf(inputTypeExpense.toUpperCase());
-        Database.add(Database.createExpenseTransaction(typeExpense), money, description);
+    private static void FilterByExpenseCategory(BufferedReader bufferedReader) throws IOException {
+        String typeSearchExpence = bufferedReader.readLine().toUpperCase();
+        TypeExpense inputTypeExpense = getExpenseType(typeSearchExpence);
+        Database.searchByType(inputTypeExpense);
     }
 
-    private static void addIncomeTransaction(BufferedReader bufferedReader, Double money, String description) throws IOException {
-        final TypeIncome[] valuesIncome = TypeIncome.values();
-        System.out.println("Выберите тип дохода: ");
+    private static void FilterByIncomeCategory(BufferedReader bufferedReader) throws IOException {
+        String typeSearchIncome = bufferedReader.readLine().toUpperCase();
+        TypeIncome inputTypeIncome = getIncomeType(typeSearchIncome);
+        Database.searchByType(inputTypeIncome);
+    }
 
-        for (var value : valuesIncome) {
-            System.out.println(value.name());
+    private static void addTransaction(BufferedReader bufferedReader) throws IOException {
+        System.out.println("Выберите тип транзакции: INCOME(Доход) или EXPENSE(Расход)");
+        String inputTypeTransaction = bufferedReader.readLine();
+        TypeTransaction typeTransaction = TypeTransaction.valueOf(inputTypeTransaction.toUpperCase());
+        System.out.println("Количество переведенных денег:");
+        double money = Double.parseDouble(bufferedReader.readLine());
+        System.out.println("Введите описание:");
+        String description = bufferedReader.readLine();
+
+        String inputValue;
+        Object typeValue;
+        if (typeTransaction.equals(TypeTransaction.INCOME)) {
+            printEnumValues(TypeIncome.values());
+            inputValue = bufferedReader.readLine().toUpperCase();
+            try {
+                typeValue = getIncomeType(inputValue);
+                Database.add(money, description, (TypeIncome) typeValue);
+
+                System.out.println("Транзакция успешно добавлена");
+            } catch (TransactionTypeNotFoundException e) {
+                System.out.println(e.getMessage());
+            }
+
+
+        } else {
+
+            printEnumValues(TypeExpense.values());
+            inputValue = bufferedReader.readLine().toUpperCase();
+            try {
+                typeValue = getExpenseType(inputValue);
+                Database.add(money, description, (TypeExpense) typeValue);
+
+                System.out.println("Транзакция успешно добавлена");
+            } catch (TransactionTypeNotFoundException e) {
+                System.out.println(e.getMessage());
+            }
+
         }
-        String inputTypeIncome = bufferedReader.readLine();
-        TypeIncome typeIncome = TypeIncome.valueOf(inputTypeIncome.toUpperCase());
-        Database.add(Database.createIncomeTransaction(typeIncome), money, description);
+    }
+
+    private static TypeIncome getIncomeType(String inputValue) {
+        return Database.getIncomeType(inputValue);
+    }
+
+    private static TypeExpense getExpenseType(String inputValue) {
+        return Database.getExpenseType(inputValue);
+    }
+
+    private static void printEnumValues(Enum<?>[] values) {
+        Stream.of(values).forEach(type -> System.out.println(type.name()));
     }
 
 
     public static void loadDB() {
-Database.loadDB();
+        Database.loadDB();
     }
 
 }
